@@ -11,12 +11,12 @@ Perfect for music covers where you record video on your phone and audio in a DAW
 brew install ffmpeg  # macOS
 
 # Install from PyPI
-uv pip install audio-video-sync
+pip install audio-video-sync
 
 # Or from source
 git clone https://github.com/sanjeed5/audio-video-sync
 cd audio-video-sync
-uv pip install -e .
+pip install -e .
 ```
 
 ## Usage
