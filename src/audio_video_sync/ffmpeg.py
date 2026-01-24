@@ -28,6 +28,7 @@ def merge(video_path: Path, audio_path: Path, output_path: Path, offset: float) 
             "-i", str(audio_path),
             "-map", "0:v:0",
             "-map", "1:a:0",
+            "-map_metadata", "0",  # preserve video metadata (rotation, etc.)
             "-c:v", "copy",
             "-c:a", "aac",
             "-b:a", "192k",
@@ -43,6 +44,7 @@ def merge(video_path: Path, audio_path: Path, output_path: Path, offset: float) 
             "-i", str(audio_path),
             "-map", "0:v:0",
             "-map", "1:a:0",
+            "-map_metadata", "0",  # preserve video metadata (rotation, etc.)
             "-c:v", "copy",
             "-c:a", "aac",
             "-b:a", "192k",
