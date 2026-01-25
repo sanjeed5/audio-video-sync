@@ -41,28 +41,30 @@ def get_frame_rate(file_path: Path) -> float:
         return 30.0
 
 
-def get_video_encoder() -> tuple[str, list[str]]:
+def get_video_encoder() -> tuple[str, list[str], list[str]]:
     """
     Get the best available video encoder and its options.
     Uses hardware acceleration on macOS (VideoToolbox) with software fallback.
     
     Returns:
-        Tuple of (encoder_name, encoder_options)
+        Tuple of (encoder_name, encoder_options, input_options)
     """
     if platform.system() == "Darwin":
         # macOS - try VideoToolbox hardware encoder
-        # Check if h264_videotoolbox is available
         result = subprocess.run(
             ["ffmpeg", "-hide_banner", "-encoders"],
             capture_output=True, text=True
         )
         if "h264_videotoolbox" in result.stdout:
-            logger.info("Using hardware encoder (VideoToolbox)")
-            return "h264_videotoolbox", ["-q:v", "65"]  # quality 0-100, 65 ≈ CRF 18
+            logger.info("Using hardware acceleration (VideoToolbox)")
+            # Use hardware decoding + encoding
+            input_opts = ["-hwaccel", "videotoolbox"]
+            encoder_opts = ["-q:v", "65"]  # quality 0-100, 65 ≈ CRF 18
+            return "h264_videotoolbox", encoder_opts, input_opts
     
     # Fallback to software encoder
     logger.info("Using software encoder (libx264)")
-    return "libx264", ["-preset", "fast", "-crf", "18"]
+    return "libx264", ["-preset", "fast", "-crf", "18"], []
 
 
 def merge(video_path: Path, audio_path: Path, output_path: Path, offset: float) -> None:
@@ -84,7 +86,7 @@ def merge(video_path: Path, audio_path: Path, output_path: Path, offset: float) 
     
     # Get video frame rate and encoder
     fps = get_frame_rate(video_path)
-    encoder, encoder_opts = get_video_encoder()
+    encoder, encoder_opts, input_opts = get_video_encoder()
     
     if offset >= 0:
         # Single-pass: seek video to offset, use audio from start, encode only what we need
@@ -92,6 +94,7 @@ def merge(video_path: Path, audio_path: Path, output_path: Path, offset: float) 
         
         cmd = [
             "ffmpeg", "-y",
+            *input_opts,                  # hardware decoding if available
             "-ss", str(offset),           # fast seek to offset (before -i)
             "-i", str(video_path),
             "-i", str(audio_path),        # audio from start
@@ -117,6 +120,7 @@ def merge(video_path: Path, audio_path: Path, output_path: Path, offset: float) 
         
         cmd = [
             "ffmpeg", "-y",
+            *input_opts,                  # hardware decoding if available
             "-i", str(video_path),
             "-ss", str(trim_audio),
             "-i", str(audio_path),

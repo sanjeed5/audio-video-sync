@@ -5,6 +5,7 @@ Uses both chromagram (pitch-based) and raw waveform correlation,
 automatically selecting the method with higher confidence.
 """
 
+import subprocess
 import numpy as np
 from scipy import signal
 from pathlib import Path
@@ -15,6 +16,29 @@ import librosa
 ANALYZE_DURATION = 40  # seconds to analyze
 ANALYSIS_SR = 22050  # sample rate for analysis
 HOP_LENGTH = 512  # hop length for chroma computation
+
+
+def _extract_audio_ffmpeg(file_path: Path, duration: float, sr: int) -> np.ndarray:
+    """
+    Extract audio from video/audio file using ffmpeg (faster than librosa for videos).
+    Returns mono audio as numpy array.
+    """
+    cmd = [
+        "ffmpeg", "-hide_banner", "-loglevel", "error",
+        "-i", str(file_path),
+        "-t", str(duration),
+        "-ac", "1",                    # mono
+        "-ar", str(sr),                # sample rate
+        "-f", "f32le",                 # 32-bit float PCM
+        "-"                            # output to stdout
+    ]
+    result = subprocess.run(cmd, capture_output=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg audio extraction failed: {result.stderr.decode()}")
+    
+    # Convert raw bytes to numpy array
+    audio = np.frombuffer(result.stdout, dtype=np.float32)
+    return audio
 
 
 def find_offset(video_path: Path, audio_path: Path) -> tuple[float, float, str]:
@@ -33,20 +57,20 @@ def find_offset(video_path: Path, audio_path: Path) -> tuple[float, float, str]:
         - offset > 0 means replacement audio should be delayed
         - offset < 0 means replacement audio should be trimmed from start
     """
-    logger.info("Loading audio from video...")
-    scratch, sr = librosa.load(video_path, sr=ANALYSIS_SR, duration=ANALYZE_DURATION, mono=True)
+    logger.info("Extracting audio from video...")
+    scratch = _extract_audio_ffmpeg(video_path, ANALYZE_DURATION, ANALYSIS_SR)
     
     logger.info("Loading replacement audio...")
-    mastered, _ = librosa.load(audio_path, sr=ANALYSIS_SR, duration=ANALYZE_DURATION, mono=True)
+    mastered = _extract_audio_ffmpeg(audio_path, ANALYZE_DURATION, ANALYSIS_SR)
     
-    logger.info(f"Analyzing {len(scratch)/sr:.1f}s of audio")
+    logger.info(f"Analyzing {len(scratch)/ANALYSIS_SR:.1f}s of audio")
     
     # Method 1: Chromagram correlation (robust to EQ, compression, reverb)
-    chroma_offset, chroma_conf = _correlate_chroma(scratch, mastered, sr)
+    chroma_offset, chroma_conf = _correlate_chroma(scratch, mastered, ANALYSIS_SR)
     logger.info(f"Chromagram: {chroma_offset:.3f}s (confidence: {chroma_conf:.1f}x)")
     
     # Method 2: Raw waveform correlation (precise when audio is similar)
-    raw_offset, raw_conf = _correlate_raw(scratch, mastered, sr)
+    raw_offset, raw_conf = _correlate_raw(scratch, mastered, ANALYSIS_SR)
     logger.info(f"Waveform:   {raw_offset:.3f}s (confidence: {raw_conf:.1f}x)")
     
     # Pick the method with higher confidence (prefer raw if close, it's more precise)
