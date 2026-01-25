@@ -4,6 +4,14 @@ Auto-sync video with separately recorded audio using cross-correlation.
 
 Perfect for music covers where you record video on your phone and audio in a DAW separately.
 
+## Features
+
+- **Auto sync detection** using cross-correlation (waveform + chromagram)
+- **Auto trim** output to match replacement audio duration
+- **VFR to CFR conversion** prevents sync drift on phone videos
+- **Hardware acceleration** on macOS (VideoToolbox) - 4.7x faster
+- **Low confidence warning** detects mismatched files
+
 ## Installation
 
 ```bash
@@ -13,38 +21,38 @@ brew install ffmpeg  # macOS
 # Install from PyPI
 pip install audio-video-sync
 
-# Or from source
-git clone https://github.com/sanjeed5/audio-video-sync
-cd audio-video-sync
-pip install -e .
+# Or with uv
+uv tool install audio-video-sync
 ```
 
 ## Usage
 
 ```bash
 # Basic usage - auto-detects sync and creates video_synced.mp4
-avsync video.mp4 audio.mp3
+avsync video.mp4 audio.wav
 
 # Specify output file
-avsync video.mp4 audio.mp3 -o output.mp4
+avsync video.mp4 audio.wav -o output.mp4
 ```
+
+Output video will be automatically trimmed to match the replacement audio's duration.
 
 ## How It Works
 
-1. **Extract audio** from both video and replacement audio
+1. **Extract audio** from video using ffmpeg
 2. **Cross-correlate** using two methods:
-   - **Chromagram correlation**: Compares pitch content over time. Robust to EQ, compression, reverb differences.
-   - **Waveform correlation**: Compares raw audio. More precise when recordings are similar.
+   - **Waveform correlation**: Compares raw audio. Precise when recordings are similar.
+   - **Chromagram correlation**: Compares pitch content. Robust to EQ, compression, reverb.
 3. **Pick the best method** based on confidence score
-4. **Merge** video with synced audio using FFmpeg
+4. **Merge & trim** video with synced audio, converting VFR to CFR
 
 ## Use Case
 
 You recorded a cover:
-- Phone video has your singing + room noise + keyboard bleed
-- DAW export has clean MIDI + processed vocals
+- Phone video has your performance + room noise
+- DAW export has clean, polished audio
 
-This tool finds the exact offset between them and creates a final video with the polished audio.
+This tool finds the exact offset, syncs them, and outputs a video matching your audio's timing.
 
 ## Requirements
 
