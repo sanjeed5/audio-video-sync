@@ -69,8 +69,10 @@ def main(
     offset, confidence, method = find_offset(video, audio)
     logger.info(f"Detected offset: {offset:.3f}s ({method}, {confidence:.1f}x confidence)")
     
-    if confidence < 3:
-        logger.warning("Low confidence - sync may be inaccurate")
+    # Warn if confidence is low - likely wrong files or different recordings
+    if confidence < 20:
+        logger.warning(f"Low confidence ({confidence:.1f}x) - audio may not match video!")
+        logger.warning("Check that video and audio are from the same recording session.")
     
     # Merge
     merge(video, audio, output, offset)
