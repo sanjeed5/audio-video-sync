@@ -1,7 +1,9 @@
 """FFmpeg wrapper for merging video with synced audio."""
 
 import platform
+import re
 import subprocess
+import sys
 from pathlib import Path
 
 from loguru import logger
@@ -67,6 +69,39 @@ def get_video_encoder() -> tuple[str, list[str], list[str]]:
     return "libx264", ["-preset", "fast", "-crf", "18"], []
 
 
+def _parse_time(time_str: str) -> float:
+    """Parse ffmpeg time string (HH:MM:SS.xx) to seconds."""
+    parts = time_str.split(":")
+    return float(parts[0]) * 3600 + float(parts[1]) * 60 + float(parts[2])
+
+
+def _run_ffmpeg_with_progress(cmd: list[str], duration: float) -> None:
+    """Run ffmpeg command with live progress bar."""
+    proc = subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True)
+    time_re = re.compile(r"time=(\d+:\d+:\d+\.\d+)")
+    is_tty = sys.stderr.isatty()
+
+    for line in proc.stderr:
+        match = time_re.search(line)
+        if match and duration > 0:
+            current = _parse_time(match.group(1))
+            pct = min(current / duration * 100, 100)
+            if is_tty:
+                bar_len = 30
+                filled = int(bar_len * pct / 100)
+                bar = "█" * filled + "░" * (bar_len - filled)
+                sys.stderr.write(f"\r  Encoding {bar} {pct:.0f}%")
+                sys.stderr.flush()
+
+    if is_tty:
+        sys.stderr.write("\r" + " " * 50 + "\r")
+        sys.stderr.flush()
+
+    proc.wait()
+    if proc.returncode != 0:
+        raise RuntimeError("FFmpeg encoding failed")
+
+
 def merge(video_path: Path, audio_path: Path, output_path: Path, offset: float) -> None:
     """
     Merge video with new audio at the specified offset.
@@ -89,7 +124,7 @@ def merge(video_path: Path, audio_path: Path, output_path: Path, offset: float) 
     encoder, encoder_opts, input_opts = get_video_encoder()
     
     if offset >= 0:
-        # Single-pass: seek video to offset, use audio from start, encode only what we need
+        target_duration = audio_duration
         logger.info(f"Syncing: video from {offset:.3f}s, {fps:.0f}fps CFR")
         
         cmd = [
@@ -107,15 +142,14 @@ def merge(video_path: Path, audio_path: Path, output_path: Path, offset: float) 
             *encoder_opts,
             "-c:a", "aac",
             "-b:a", "192k",
-            "-t", str(audio_duration),    # output duration = audio length
+            "-t", str(target_duration),
             "-movflags", "+faststart",
             str(output_path)
         ]
         
     else:
-        # Audio has intro before performance - trim audio start
         trim_audio = abs(offset)
-        effective_duration = audio_duration - trim_audio
+        target_duration = audio_duration - trim_audio
         logger.info(f"Trimming audio: skipping first {trim_audio:.3f}s, {fps:.0f}fps CFR")
         
         cmd = [
@@ -132,15 +166,12 @@ def merge(video_path: Path, audio_path: Path, output_path: Path, offset: float) 
             *encoder_opts,
             "-c:a", "aac",
             "-b:a", "192k",
-            "-t", str(effective_duration),
+            "-t", str(target_duration),
             "-movflags", "+faststart",
             str(output_path)
         ]
     
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        logger.error(f"FFmpeg error: {result.stderr}")
-        raise RuntimeError(f"FFmpeg failed: {result.stderr}")
+    _run_ffmpeg_with_progress(cmd, target_duration)
     
     logger.success(f"Created: {output_path}")
     logger.info(f"Size: {output_path.stat().st_size / 1024 / 1024:.1f} MB")

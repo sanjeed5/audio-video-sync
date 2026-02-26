@@ -1,6 +1,6 @@
 [project]
 name = "audio-video-sync"
-version = "0.2.0"
+version = "0.2.1"
 description = "Auto-sync video with separately recorded audio using cross-correlation"
 readme = "README.md"
 license = { text = "MIT" }
