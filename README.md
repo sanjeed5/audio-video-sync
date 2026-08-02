@@ -9,8 +9,10 @@ Perfect for music covers where you record video on your phone and audio in a DAW
 - **Auto sync detection** using cross-correlation (waveform + chromagram)
 - **Auto trim** output to match replacement audio duration
 - **VFR to CFR conversion** prevents sync drift on phone videos
-- **Hardware acceleration** on macOS (VideoToolbox) - 4.7x faster
+- **Hardware acceleration** on macOS (VideoToolbox)
 - **Low confidence warning** detects mismatched files
+- **Manual offset / dry-run** for when you already know the sync point
+- **Thumbnail generation** from video frames with styled text overlay
 
 ## Installation
 
@@ -27,24 +29,50 @@ uv tool install audio-video-sync
 
 ## Usage
 
+### Sync video with audio
+
 ```bash
-# Basic usage - auto-detects sync and creates video_synced.mp4
-avsync video.mp4 audio.wav
+# Auto-detects sync and creates video_synced.mp4
+avsync sync video.mp4 audio.wav
 
 # Specify output file
-avsync video.mp4 audio.wav -o output.mp4
+avsync sync video.mp4 audio.wav -o output.mp4
+
+# Detect only (no encode)
+avsync sync video.mp4 audio.wav --dry-run
+
+# Skip detection with a known offset (seconds)
+avsync sync video.mp4 audio.wav --offset 17.2
+
+# Analyze more audio / disable hardware encode
+avsync sync video.mp4 audio.wav --analyze 60 --no-hwaccel
 ```
 
 Output video will be automatically trimmed to match the replacement audio's duration.
 
+### Generate thumbnails
+
+```bash
+# Generate clean + gradient style thumbnails
+avsync thumb video.mp4 "Song Title" "Artist"
+
+# Pick a specific style and frame time
+avsync thumb video.mp4 "Song Title" -s clean -t 15
+
+# JPEG output, open after generation
+avsync thumb video.mp4 "Song Title" "Artist" -o cover.jpg --open
+```
+
+Extracts a frame from the video, applies a soft blur, and overlays styled text. Two styles available: **clean** (text with glow shadow) and **gradient** (dark vignette band with white text). Output is resized to a 1280px long edge by default (YouTube-friendly).
+
 ## How It Works
 
 1. **Extract audio** from video using ffmpeg
-2. **Cross-correlate** using two methods:
+2. **Cross-correlate** using two methods with comparable confidence scores:
    - **Waveform correlation**: Compares raw audio. Precise when recordings are similar.
-   - **Chromagram correlation**: Compares pitch content. Robust to EQ, compression, reverb.
-3. **Pick the best method** based on confidence score
-4. **Merge & trim** video with synced audio, converting VFR to CFR
+   - **Chromagram correlation**: Compares pitch content band-by-band. Robust to EQ, compression, reverb.
+3. **Pick the best method** based on normalized confidence
+4. **Merge & trim** video with synced audio (sample-accurate trim), converting VFR to CFR
 
 ## Use Case
 
@@ -57,7 +85,7 @@ This tool finds the exact offset, syncs them, and outputs a video matching your 
 ## Requirements
 
 - Python 3.10+
-- FFmpeg installed and in PATH
+- FFmpeg and ffprobe installed and in PATH
 
 ## License
 
