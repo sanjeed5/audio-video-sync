@@ -91,7 +91,7 @@ def get_video_encoder(allow_hwaccel: bool = True) -> tuple[str, tuple[str, ...],
             logger.info("Using hardware acceleration (VideoToolbox)")
             return (
                 "h264_videotoolbox",
-                ("-q:v", "65", "-pix_fmt", "yuv420p"),
+                ("-q:v", "80", "-pix_fmt", "yuv420p"),
                 ("-hwaccel", "videotoolbox"),
             )
 
