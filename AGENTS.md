@@ -6,10 +6,9 @@ CLI tool to auto-sync video with separately recorded audio using cross-correlati
 
 ## Key Files
 
-- `src/audio_video_sync/cli.py` - CLI entry point (typer, subcommands: `sync` and `thumb`)
+- `src/audio_video_sync/cli.py` - CLI entry point (typer, `sync` command)
 - `src/audio_video_sync/sync.py` - Audio analysis and correlation
 - `src/audio_video_sync/ffmpeg.py` - Video merging with ffmpeg
-- `src/audio_video_sync/thumbnail.py` - Thumbnail generation (frame extraction + Pillow text overlay)
 
 ## Technical Details
 
@@ -22,7 +21,7 @@ CLI tool to auto-sync video with separately recorded audio using cross-correlati
 
 ## CLI import rule
 
-**Never** eagerly import `sync` / `thumbnail` (scipy, librosa, Pillow) at module top in `cli.py`. Lazy-import inside commands so `avsync --version` / `--help` stay instant.
+**Never** eagerly import `sync` (scipy, librosa) at module top in `cli.py`. Lazy-import inside commands so `avsync --version` / `--help` stay instant.
 
 ## Version Management
 
@@ -55,7 +54,6 @@ uv run twine upload dist/*
 ```bash
 uv run pytest
 uv run avsync sync video.mp4 audio.wav --dry-run
-uv run avsync thumb video.mp4 "Song Title" "Artist"
 ```
 
 Check output for:

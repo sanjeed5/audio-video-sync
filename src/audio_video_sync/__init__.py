@@ -1,3 +1,3 @@
 """audio-video-sync: Auto-sync video with separately recorded audio."""
 
-__version__ = "0.4.3"
+__version__ = "0.5.0"

@@ -6,7 +6,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [{ name = "Sanjeed" }]
-keywords = ["audio", "video", "sync", "ffmpeg", "cover", "music", "thumbnail"]
+keywords = ["audio", "video", "sync", "ffmpeg", "cover", "music"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -25,7 +25,6 @@ dependencies = [
     "scipy>=1.10.0",
     "numpy>=1.24.0",
     "loguru>=0.7.0",
-    "Pillow>=10.1.0",
 ]
 
 [project.optional-dependencies]

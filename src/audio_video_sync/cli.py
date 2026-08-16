@@ -2,20 +2,17 @@
 
 import sys
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Optional
 
 import typer
 from loguru import logger
 
 from . import __version__
 
-# Keep light so --version/--help don't import Pillow/scipy
-ThumbnailStyle = Literal["clean", "gradient"]
-ALL_STYLES: tuple[ThumbnailStyle, ...] = ("clean", "gradient")
-
+# Keep light so --version/--help don't import scipy/librosa
 app = typer.Typer(
     name="avsync",
-    help="Auto-sync video with separately recorded audio, and generate thumbnails.",
+    help="Auto-sync video with separately recorded audio.",
     add_completion=False,
     no_args_is_help=True,
 )
@@ -39,7 +36,7 @@ def common(
         help="Show version and exit.",
     ),
 ):
-    """Auto-sync video with separately recorded audio, and generate thumbnails."""
+    """Auto-sync video with separately recorded audio."""
 
 
 @app.command()
@@ -116,69 +113,6 @@ def sync(
             return
 
         merge(video, audio, output, offset, allow_hwaccel=not no_hwaccel)
-
-        logger.info("")
-        logger.info(f'Tip: generate a thumbnail with:  avsync thumb "{output}" "Song Title"')
-    except typer.Exit:
-        raise
-    except Exception as e:
-        logger.error(str(e))
-        raise typer.Exit(1) from e
-
-
-@app.command()
-def thumb(
-    video: Path = typer.Argument(..., help="Video file to extract frame from"),
-    title: str = typer.Argument(..., help="Title text for the thumbnail"),
-    artist: Optional[str] = typer.Argument(None, help="Artist name (optional)"),
-    output: Optional[Path] = typer.Option(
-        None, "-o", "--output", help="Output file path",
-    ),
-    time: Optional[float] = typer.Option(
-        None, "-t", "--time", help="Frame timestamp in seconds (default: middle)",
-    ),
-    style: Optional[ThumbnailStyle] = typer.Option(
-        None, "-s", "--style", help=f"Style: {', '.join(ALL_STYLES)} (default: all)",
-    ),
-    font_size: int = typer.Option(72, "--font-size", help="Title font size in px"),
-    max_edge: int = typer.Option(
-        1280, "--max-edge", help="Max long-edge pixels (default: 1280)",
-    ),
-    save_frame: bool = typer.Option(
-        False, "--save-frame", help="Also save the raw extracted frame",
-    ),
-    open_after: bool = typer.Option(False, "--open", help="Open result after generation"),
-):
-    """Generate thumbnail(s) from a video frame with text overlay."""
-    from .ffmpeg import check_ffmpeg
-    from .thumbnail import create_thumbnail, open_path
-
-    _setup_logging()
-
-    try:
-        if not video.exists():
-            logger.error(f"Video not found: {video}")
-            raise typer.Exit(1)
-
-        if not check_ffmpeg():
-            logger.error("FFmpeg/ffprobe not found. Install: brew install ffmpeg")
-            raise typer.Exit(1)
-
-        outputs = create_thumbnail(
-            video_path=video,
-            title=title,
-            artist=artist,
-            output=output,
-            timestamp=time,
-            style=style,
-            font_size=font_size,
-            max_edge=max_edge,
-            save_frame=save_frame,
-        )
-
-        if open_after:
-            for p in outputs:
-                open_path(p)
     except typer.Exit:
         raise
     except Exception as e:

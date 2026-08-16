@@ -12,7 +12,6 @@ Perfect for music covers where you record video on your phone and audio in a DAW
 - **Hardware acceleration** on macOS (VideoToolbox)
 - **Low confidence warning** detects mismatched files
 - **Manual offset / dry-run** for when you already know the sync point
-- **Thumbnail generation** from video frames with styled text overlay
 
 ## Installation
 
@@ -49,21 +48,6 @@ avsync sync video.mp4 audio.wav --analyze 60 --no-hwaccel
 ```
 
 Output video will be automatically trimmed to match the replacement audio's duration.
-
-### Generate thumbnails
-
-```bash
-# Generate clean + gradient style thumbnails
-avsync thumb video.mp4 "Song Title" "Artist"
-
-# Pick a specific style and frame time
-avsync thumb video.mp4 "Song Title" -s clean -t 15
-
-# JPEG output, open after generation
-avsync thumb video.mp4 "Song Title" "Artist" -o cover.jpg --open
-```
-
-Extracts a frame from the video, applies a soft blur, and overlays styled text. Two styles available: **clean** (text with glow shadow) and **gradient** (dark vignette band with white text). Output is resized to a 1280px long edge by default (YouTube-friendly).
 
 ## How It Works
 
