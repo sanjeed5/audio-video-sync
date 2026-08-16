@@ -16,7 +16,7 @@ CLI tool to auto-sync video with separately recorded audio using cross-correlati
 - Uses cross-correlation (waveform + chromagram) to find offset
 - Confidence is peak / secondary-peak (length-invariant); warn below `LOW_CONFIDENCE_THRESHOLD`
 - Converts VFR to CFR to prevent sync drift
-- Hardware acceleration on macOS (VideoToolbox) for encode; positive-offset path skips hw *decode* because `filter_complex` needs software frames
+- Hardware acceleration on macOS (VideoToolbox) for encode at `-q:v 80` (~8 Mbps 1080p, Instagram+YouTube). Do not drop back to 65 (lands ~2.4 Mbps). Positive-offset path skips hw *decode* because `filter_complex` needs software frames
 - Output is trimmed to match replacement audio duration
 - Sample-accurate cuts: video `trim` (+ optional pre-seek), audio `atrim`
 
@@ -33,7 +33,9 @@ CLI tool to auto-sync video with separately recorded audio using cross-correlati
 
 ## Publishing to PyPI
 
-When making changes that affect functionality, update version and publish:
+When making changes that affect functionality, bump version, test, and publish to PyPI in the same turn. Git commit and push still wait for an explicit ask.
+
+Publish steps:
 
 1. Bump version in `src/audio_video_sync/__init__.py`
 2. Update `README.md` if features changed
